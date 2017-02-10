@@ -988,3 +988,165 @@ defmodule MyList do
   def span(from, to) when from > to, do: [from | span(from - 1, to)]
 end
 ```
+
+# Chapter 8 - Maps, Keyword Lists, Sets and Structs
+
+Data structure decision questions:
+
+- needs to pattern match against the content, like matching dictionary has a key of `:name`?
+    - use a *map*
+- need to have more than one entry with same key?
+    - use `Keyword` module
+- need to have ordered elements?
+    - use `Keyword` module
+- not above situation?
+    - use *map*
+
+## Keyword List
+
+Keyword list is typically used as options passed to function.
+
+```elixir
+defmodule Canvas do
+  @defaults [ fg: "black", bg: "white", font: "Driod Sans" ]
+  
+  def draw_text(text, options \\ []) do
+    options = Keyword.merge(@defaults, options)
+    # ...
+  end
+end
+```
+
+For simple access on Keyword List, use `keyword_listp[key]` syntax. `Keyword` and `Enum` module are avaiable for Keyword List.
+
+## Map
+
+Maps are widely used in elixir, they have good performance at all sizes.
+
+```elixir
+# basic Map api
+map = %{ name: "Ravi", likes: "Ruby", where: "Taiwan" }
+
+Map.keys map
+#=> [:likes, :name, :where]
+
+Map.values map
+#=> ["Ruby", "Ravi", "Taiwan"]
+
+map[:name]
+#=> "Ravi"
+
+map.name
+#=> "Ravi"
+
+map1 = Map.drop map, [:where, :likes]
+#=> %{name: "Ravi"}
+
+map2 = Map.put map, :also_likes, "Elixir"
+#=> %{also_likes: "Elixir", likes: "Ruby", name: "Ravi", where: "Taiwan"}
+
+Map.keys map2
+#=> [:also_likes, :likes, :name, :where]
+
+Map.has_key? map1, :where
+#=> false
+
+{ value, updated_map } = Map.pop map2, :also_likes
+#=> {"Elixir", %{likes: "Ruby", name: "Ravi", where: "Taiwan"}}
+
+Map.equal? map, updated_map
+#=> true
+```
+
+### Pattern Matching
+
+```elixir
+people = [
+  %{ name: "Grumpy", height: 1.23 },
+  %{ name: "Dave", height: 1.88 },
+  %{ name: "David", height: 2.13 }
+]
+
+IO.inspect(for person = %{ height: height } <- people, height > 1.5, do: person)
+
+#=> [%{height: 1.88, name: "Dave"}, %{height: 2.13, name: "David"}]
+```
+
+Note! Pattern Matching Can't Bind Map Keys
+
+Pattern Matching Can Match Variable Keys
+
+```elixir
+data = %{ name: "Ravi", state: "Taiwan", likes: "Ruby" }
+
+for key <- [ :name, :likes ] do
+  %{ ^key => value } = data
+  value
+end
+
+#=> ["Ravi", "Ruby"]
+```
+
+### Updating Map
+
+`|` is the simplest way to update a map, very similar as Ruby's `Hash#merge`
+
+```elixir
+new_map = %{ old_map | key => value }
+```
+
+## Structs
+
+Struct is a typed Map, that has a fixed set of fields and default values for those fields.
+
+The key in Struct must be atom, and don't have `Dict` capabilities.
+
+```elixir
+defmodule Subscriber do
+  defstruct name: "", paid: false, over_18: true
+end
+
+s1 = %Subscriber{name: "Ravi", paid: true}
+#=> %{name: "Ravi", over_18: true, paid: true}
+
+s1.name = "Ravi"
+%Subscriber{name: a_matched_name} = s1
+a_matched_name
+#=> "Ravi"
+
+s2 = %Subscriber{ s1 | name: "Ron" }
+#=> %Subscriber{name: "Ron", over_18: true, paid: true}
+```
+
+Struct plays a large role when implementing polyporphism.
+
+### Nested Dictionary structure
+
+```elixir
+defmodule Customer do
+  defstruct name: "", company: ""
+end
+
+defmodule BugReport do
+  defstruct owner: %Customer{}, details: "", level: 1
+end
+```
+
+Accessing the attributes in nested struct by `.` operator:
+
+```elixir
+report = %BugReport{owner: %Customer{name: "Ravi", company: "LW"}, details: "broken"}
+
+report.owner.company
+#=> "LW"
+```
+
+#### Dynamic (Runtime) Nested Accessors
+
+|syntax|Macro|Function|
+|------|-----|--------|
+|get_in|no|(dict, keys)|
+|put_in|(path, value)|(dict, keys, value)|
+|update_in|(path, fn)|(dict, keys, fn)|
+|get_and_update_in|(path, fn)|(dict, keys, fn)
+
