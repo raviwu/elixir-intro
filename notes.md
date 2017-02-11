@@ -457,9 +457,6 @@ Use `&` to shorcut passing function to other functions:
 Enum.map([1, 2, 3, 4, 5], &(&1 + 1)) #=> [2, 3, 4, 5, 6]
 Enum.map([1, 2, 3, 4, 5], &(&1 * &1)) #=> [1, 4, 9, 16, 25] 
 Enum.map([1, 2, 3, 4, 5], &(&1 < 3)) #=> [true, true, false, false, false]
-
-Enum.map([1, 2, 3, 4], &(&1 + 2)) #=> [3, 4, 5, 6]
-Enum.map([1, 2, 3, 4], &(IO.inspect(&1)))
 ```
 
 # Chapter 6 - Modules and Named Functions
@@ -506,16 +503,6 @@ def greet(greeting, name), do: (
 
 Typically people use `do..end` for multiple lines, `do: ..` for single line block.
 
-```elixir
-defmodule Times do
-  def double(n), do: n * 2
-  
-  def triple(n), do: n * 3
-
-  def quadruple(n), do: double(n * 2)
-end
-```
-
 ## Function Calls and Pattern Matching
 
 In anonymous function we write the pattern by clause, in named functions, we write the function multiple times, each time with its own parameter list and body. When calling a named function, Elixir tries to match the arguments with the parameter list of the first definition, if it is not matched, Elixir tries the next definition of same function, it continues until it runs out of candidates.
@@ -544,7 +531,6 @@ Factorial.of(3)
 The order of pattern is important, Elixir match the pattern from top to down, so below order won't work:
 
 ```elixir
-# mm/broken-factorial.exs
 defmodule Factorial do
   def of(n), do: n * of(n - 1)
   def of(0), do: 1
@@ -553,30 +539,12 @@ end
 
 > One more thing: when you have multiple implementations of the same function, they should be adjacent in the source file.
 
-Other examples for the simple recursion implementation:
-
-```
-# mm/sum.exs
-defmodule Sum do
-  def from(1), do: 1
-  def from(n), do: n + from(n - 1)
-end
-```
-
-```
-# mm/greatest_common_divisor.exs
-defmodule GeatestCommonDivisor do
-  def gcd(x, 0), do: x
-  def gcd(x, y), do: gcd(y, rem(x, y))
-end
-```
-
 ## Guard Clauses
 
 If we need to dintinguish based on parameter's types or on some test involving their values, use *guard clauses* by using `when` keyword that attaching predicates to a function. Elixir first check the conventional parameter-based matching and evaluates any `when` predicates, the block only executed when at least one predicate is true.
 
 ```
-# mm/guard.exs
+# examples/guard.exs
 defmodule Guard do
   def what_is(x) when is_number(x), do: IO.puts "#{x} is a number"
   def what_is(x) when is_list(x), do: IO.puts "#{inspect(x)} is a list"
@@ -620,29 +588,6 @@ defmodule DefaultParams2 do
   def func(p1, p2 \\ 2)
   def func(p1, p2) when is_list(p1), do: "You said #{p2} with a list"
   def func(p1, p2), do: "You passed in #{p1} and #{p2}"
-end
-```
-
-```elixir
-# mm/chop.exs
-defmodule Chop do
-  def guess(number, first..last), do: guess_number(number, first..last, get_current_number(first..last))
-
-  def guess_number(number, _, current_number) when current_number == number do
-    IO.puts "#{number}"
-  end
-
-  def guess_number(number, first..last, current_number) when current_number > number do
-    IO.puts "It is #{current_number}"
-    guess_number(number, first..current_number, get_current_number(first..current_number))
-  end
-
-  def guess_number(number, first..last, current_number) when current_number < number do
-    IO.puts "It is #{current_number}"
-    guess_number(number, current_number..last, get_current_number(current_number..last))
-  end
-
-  def get_current_number(first..last) do: div(last - first, 2) + first
 end
 ```
 
@@ -721,7 +666,6 @@ There's no particular relationship between the modules `Mix` and `Mix.Tasks.Doct
 `import` brings a module's functions and/or macros into current scope. For example, if you import the `flatten` function from the `List` module, you'd be able to call it in your code without having to specify the module name.
 
 ```elixir
-# mm/import.exs
 defmodule Example do
   def func1 do
     List.flatten [1, [2, 3], 4]
@@ -892,14 +836,6 @@ defmodule MyList do
 end
 ```
 
-```elixir
-# sum without an accumulator
-defmodule MyList do
-  def sum([]), do: 0
-  def sum([ head | tail ]), do: head + sum(tail)
-end
-```
-
 ## Generalize the Sum Function
 
 ```elixir
@@ -910,42 +846,6 @@ defmodule MyList do
   def reduce([ head | tail ], value, func) do
     reduce(tail, func.(head, value), func)
   end
-end
-```
-
-### Exercises
-
-```elixir
-# mapsum(list, func)
-defmodule MyList do
-  def mapsum([], _), do: 0
-  def mapsum([ head | tail ], func), do: func.(head) + mapsum(tail, func)
-end
-```
-
-```elixir
-# max(list)
-defmodule MyList do
-  def max([ head | [] ]), do: head
-  def max([ head | tail ]) do
-    [second | remain_tail] = tail
-    max([_max(head, second) | remain_tail])
-  end
-  
-  defp _max(a, b) when a >= b, do: a
-  defp _max(a, b) when a < b, do: b
-end
-```
-
-```elixir
-# caesar(list, n)
-defmodule MyList do
-  def caesar([], _), do: []
-  def caesar([ head | tail ], n), do: [_encrypt(head, n) | caesar(tail, n)]
-  
-  # A: 65 Z: 90 a: 97 z: 122
-  def _encrypt(char, n) when (char >= 65) and (char <= 90), do: rem(char + n - 65, 26) + 65
-  def _encrypt(char, n) when (char >= 97) and (char <= 122), do: rem(char + n - 97, 26) + 97
 end
 ```
 
@@ -978,14 +878,6 @@ defmodule WeatherHistroy do
   def for_location([ _ | tail ], target_loc) do
     for_location(tail, target_loc)
   end
-end
-```
-
-```elixir
-defmodule MyList do
-  def span(from, to) when from == to, do: [from]
-  def span(from, to) when from < to, do: [from | span(from + 1, to)]
-  def span(from, to) when from > to, do: [from | span(from - 1, to)]
 end
 ```
 
@@ -1141,7 +1033,7 @@ report.owner.company
 #=> "LW"
 ```
 
-#### Dynamic (Runtime) Nested Accessors
+### Dynamic (Runtime) Nested Accessors
 
 |syntax|Macro|Function|
 |------|-----|--------|
@@ -1150,3 +1042,124 @@ report.owner.company
 |update_in|(path, fn)|(dict, keys, fn)|
 |get_and_update_in|(path, fn)|(dict, keys, fn)
 
+Checkout `examples/dynamic_nested.exs` for the accessors usage.
+
+### Access Module
+
+The `Access` module provides functions to be used as parameters for `get` and `get_and_update_in` functions, acting as filters while traversing the structures.
+
+The `all` and `at` only work on lists, `all` returns all elements in the list, `at` returns the nth element.
+
+```elixir
+cast = [
+  %{
+    character: "Buttercup",
+    actor: %{
+      first: "Robin",
+      last: "Wright"
+    },
+    role: "princess"
+  },
+  %{
+    character: "Westley",
+    actor: %{
+      first: "Cary",
+      last: "Elwes"
+    },
+    role: "farm boy"
+  }
+]
+
+IO.inspect get_in(cast, [Access.all(), :character])
+#=> ["Buttercup", "Westley"]
+
+IO.inspect get_in(cast, [Access.at(1), :role])
+#=> "farm boy"
+
+IO.inspect get_and_update_in(cast, [Access.all(), :actor, last], fn (val) -> {val, String.upcase(val)} end)
+#=> {["Wright", "Elwes"], [%{actor: %{first: "Robin", last: "WRIGHT"}, character: "Buttercup", role: "princess"}, %{actor: %{first: "Cary", last: "ELWES"}, character: "Westley", role: "farm boy"}]}
+```
+
+While `elem` works on tuples:
+
+```elixir
+cast = [
+  %{
+    character: "Buttercup",
+    actor: {"Robin", "Wright"},
+    role: "princess"
+  },
+  %{
+    character: "Westley",
+    actor: {"Carey", "Elwes"},
+    role: "farm boy"
+  }
+]
+
+IO.inspect get_in(cast, [Access.all(), :actor, Access.elem(1)])
+#=> ["Wright", "Elwes"]
+
+IO.inspect get_and_update_in(cast, [Access.all(), :actor, Access.elem(1)], fn (val) -> {val, String.reverse(val)} end)
+#=> {["thgirW", "sewlE"], [%{actor: {"Robin", "thgirW"}, character: "Buttercup", role: "princess"}, %{actor: {"Cary", "sewlE"}, character: "Westley", role: "farm boy"}]}
+```
+
+The `key` and `key!` work on dictionary types (maps and structs):
+
+```elixir
+cast = %{
+  buttercup: %{
+    actor: {"Robin", "Wright"},
+    role: "princess"
+  },
+  westley: %{
+    actor: {"Carey", "Elwes"},
+    role: "farm boy"
+  }
+}
+
+IO.inspect get_in(cast, [Access.key(:westley), :actor, Access.elem(1)])
+#=> "Elwes"
+
+IO.inspect get_and_update_in(cast, [Access.key(:buttercup), :role], fn (val) -> {val, "Queen"} end)
+#=> {"princess", %{buttercup: %{actor: {"Robin", "Wright"}, role: "Queen"}, westley: %{actor: {"Carey", "Elwes"}, role: "farm boy"}}}
+```
+
+`Access.pop` removes the entry with a given key from a map or keyword list. It returns a tuple containing the value associated with the key and the updated container. `nil` is returned if the `key` not found in container.
+
+```elixir
+Access.pop(%{name: "Elixir", creator: "Valim"}, :name)
+#=> {"Elixir", %{creator: "Valim"}}
+
+Access.pop([name: "Elixir", creator: "Valim"], :name)
+#=> {"Elixir", [creator: "Valim"]}
+
+Access.pop(%{name: "Elixir", creator: "Valim"}, :year)
+#=> {nil, %{creator: "Valim", name: "Elixir"}}
+```
+
+## Sets
+
+Sets are implemented with module `MapSet`
+
+```elixir
+set1 = 1..5 |> Enum.into(MapSet.new)
+#=> #MapSet<[1, 2, 3, 4, 5]>
+
+set2 = 3..8 |> Enum.into(MapSet.new)
+#=> #MapSet<[3, 4, 5, 6, 7, 8]>
+
+MapSet.member? set1, 3
+#=> true
+
+MapSet.union set1, set2
+#=> #MapSet<[1, 2, 3, 4, 5, 6, 7, 8]>
+
+MapSet.difference set1, set2
+#=> #MapSet<[1, 2]>
+
+MapSet.difference set2, set1
+#=> #MapSet<[6, 7, 8]>
+
+MapSet.intersection set1, set2
+#=> #MapSet<[3, 4, 5]>
+```
