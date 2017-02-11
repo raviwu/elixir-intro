@@ -1192,3 +1192,180 @@ The `Keyword` module doesn't have underlying primitive data type.
 
 From above explainations, the APIs for collections in Elixir are broad.
 
+# Chapter 10 - Enum and Stream
+
+Elixir comes with many types that act as collections. List, Map, Range, file, and even function can also act as collections. You can also define your own collection via protocols.
+
+Collections all share the `Enumerable` behavior. Elixir provides two modules that have a bunch of iteration functions: `Enum` and `Stream`. `Enum` will be heavily used, `Stream` provides lazy iteration which is less often used compares to `Enum`.
+
+## Enum - common used APIs
+
+Convert collection into list:
+
+```elixir
+list = Enum.to_list 1..5
+#=> [1, 2, 3, 4, 5]
+```
+
+Concatenate collections:
+
+```elixir
+Enum.concat([1, 2], [3, 4])
+#=> [1, 2, 3, 4]
+
+Enum.concat([1, 2, 3], 'abc')
+#=> [1, 2, 3, 97, 98, 99]
+```
+
+Create collections mapped with original elements:
+
+```elixir
+Enum.map([1, 2, 3], &(^1 * 10))
+#=> [10, 20, 30]
+
+Enum.map([1, 2, 3], &String.duplicate("*", &1))
+#=> ["*", "**", "***"]
+```
+
+Select elements by position or criteria:
+
+```elixir
+Enum.at(0..5, 3)
+#=> 3
+
+Enum.at(0..5, 10)
+#=> nil
+
+Enum.at(0..5, 10, :nothing_there)
+#=> :nothing_there
+
+Enum.filter([1, 2, 3], &(&1 > 2))
+#=> [3]
+
+require Integer
+
+Enum.filter([1, 2, 3, 4, 5], &Integer.is_even/1)
+#=> [2, 4]
+
+Enum.reject([1, 2, 3, 4, 5], &Integer.is_even/1)
+#=> [1, 3, 5]
+```
+
+Sort and compare elements:
+
+```elixir
+Enum.sort ["there", "was", "a", "small", "cat"]
+#=> ["a", "cat", "small", "there", "was"]
+
+Enum.sort ["there", "was", "a", "small", "cat"], &(String.length(&1) <= String.length(&2))
+#=> ["a", "was", "cat", "there", "small"]
+# important to use `<=` and not just `<` if yuo want the sort to be stable
+
+Enum.max ["there", "was", "a", "small", "cat"]
+#=> "was"
+
+Enum.max_by ["there", "was", "a", "small", "cat"], &String.length/1
+#=> "there"
+```
+
+Split a collection:
+
+```elixir
+Enum.take([1, 2, 3, 4, 5], 3)
+#=> [1, 2, 3]
+
+Enum.take_every [1, 2, 3, 4, 5], 2
+#=> [1, 3, 5]
+
+Enum.take_while([1, 2, 3, 4, 5], &(&1 < 4))
+#=> [1, 2, 3]
+
+Enum.split([0, 1, 2, 3, 4, 5], 2)
+#=> {[0, 1], [2, 3, 4, 5]}
+
+Enum.split_while([0, 1, 2, 3, 4, 5], &(&1 < 4))
+#=> {[0, 1, 2, 3], [4, 5]}
+```
+
+Join collection:
+
+```elixir
+Enum.join [1, 2, 3]
+#=> "123"
+
+Enum.join [1, 2, 3], ", "
+#=> "1, 2, 3"
+```
+
+Predicate operations:
+
+```elixir
+Enum.all?([1, 2, 3, 4, 5], &(&1 < 4))
+#=> false
+
+Enum.any?([1, 2, 3, 4, 5], &(&1 < 4))
+#=> true
+
+Enum.member?([1, 2, 3], 1)
+#=> true
+
+Enum.empty?([1, 2, 3])
+#=> false
+
+Enum.empty?(%{})
+#=> true
+```
+
+Merge collections:
+
+```elixir
+Enum.zip([1, 2, 3, 4, 5], [:a, :b, :c])
+#=> [{1, :a}, {2, :b}, {3, :c}]
+
+Enum.with_index(["once", "upon", "a", "time"])
+#=> Enum.with_index(["once", "upon", "a", "time"])
+```
+
+Fold elements into single value:
+
+```elixir
+Enum.reduce(1..100, &(&1+&2))
+#=> 5050
+
+Enum.reduce(["now", "is", "the", "time"], fn word, longest ->
+  if String.length(word) > String.length(longest) do
+    word
+  else
+    longest
+  end
+end)
+#=> "time"
+
+Enum.reduce(["now", "is", "the", "time"], 0, fn word, longest ->
+  if String.length(word) > longest,
+  do: String.length(word),
+  else: longest
+end)
+#=> 4
+```
+
+Deal a hand of cards:
+
+```elixir
+import Enum
+
+deck = for rank <- '23456789TJQKA', suit <- 'CDHS', do: [suit, rank]
+
+length deck
+#=> 52
+
+deck |> shuffle |> take(13)
+#=> ['D8', 'C5', 'D5', 'SK', 'D3', 'C4', 'DQ', 'S7', 'H5', 'CQ', 'DA', 'HK', 'C9']
+
+hands = deck |> shuffle |> chunk(13)
+[['HA', 'C5', 'H8', 'S3', 'C3', 'C2', 'SQ', 'C4', 'D2', 'H9', 'D9', 'DT', 'H5'],
+ ['D7', 'CA', 'SJ', 'CK', 'D5', 'DK', 'CT', 'C7', 'D3', 'S6', 'H4', 'S9', 'ST'],
+ ['C9', 'D8', 'D4', 'D6', 'HJ', 'S7', 'DA', 'HT', 'H3', 'SK', 'C8', 'S5', 'S8'],
+ ['CQ', 'DQ', 'S4', 'DJ', 'H7', 'CJ', 'H6', 'HK', 'C6', 'HQ', 'H2', 'S2', 'SA']]
+```
+
