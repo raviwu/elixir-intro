@@ -1163,3 +1163,32 @@ MapSet.difference set2, set1
 MapSet.intersection set1, set2
 #=> #MapSet<[3, 4, 5]>
 ```
+
+# Chapter 9 - What are Types
+
+> The primitive data types are not necessarily the same as the types they can represent.
+
+> There’s a difference between the primitive list and the functionality of the `List` module. The primitive list is an implementation, whereas the `List` module adds a layer of abstraction. Both implement types, but the type is different. Primitive lists, for example, don’t have a `flatten` function.
+
+> The `Keyword` type is an Elixir module, which is implemented as a list of tuples:
+
+```elixir
+options = [{:width, 72}, {:style, "light"}, {:style, "print"}]
+```
+
+The `Keyword` is actually a list, hence gaining all functions available from `List` module, plus Elixir adds functionality to give dictionary-like behavior on the `Keyword` List.
+
+```elixir
+options = [width: 72, style: "light", style: "print"]
+
+List.last options
+#=> {:style, "print"}
+
+Keyword.get_values options, :style
+#=> ["light", "print"]
+```
+
+The `Keyword` module doesn't have underlying primitive data type.
+
+From above explainations, the APIs for collections in Elixir are broad.
+
