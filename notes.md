@@ -1369,3 +1369,84 @@ hands = deck |> shuffle |> chunk(13)
  ['CQ', 'DQ', 'S4', 'DJ', 'H7', 'CJ', 'H6', 'HK', 'C6', 'HQ', 'H2', 'S2', 'SA']]
 ```
 
+## Streams - Lazy Enumerables
+
+`Enum` module is greedy, it consumes all the content of provided collection. Which means the result will typically be another collection.
+
+```elixir
+[1, 2, 3, 4, 5]
+|> Enum.map(&(&1*&1))
+|> Enum.with_index
+|> Enum.map(fn {value, index} -> value - index end)
+|> IO.inspect
+#=> [1, 3, 7, 13, 21]
+```
+
+Above pipeline generates four lists on its way to outputting the final result.
+
+But what we really want is to process the elements in the collection as we need them, don't need to store intermediate results as full collections. Stream does this by pass the current element from function to function.
+
+```elixir
+s = Stream.map [1, 3, 5, 7], &(&1 + 1)
+#=> #Stream<[enum: [1, 3, 5, 7], funs: [#Function<47.36862645/1 in Stream.map/2>]]>
+
+Enum.to_list s
+#=> [2, 4, 6, 8]
+```
+
+`Stream` is enumerable, you can pass a stream to a stream function, hence streams are *composable*.
+
+```elixir
+squares = Stream.map [1, 2, 3, 4], &(&1*&1)
+plus_ones = Stream.map squares, &(&1+1)
+odds = Stream.map plus_ones, fn x -> rem(x, 2) == 1 end
+
+Enum.to_list odds
+#=> [5, 17]
+
+# Rewrite this in pipeline style:
+[1, 2, 3, 4]
+|> Stream.map(&(&1*&1))
+|> Stream.map(&(&1+1))
+|> Stream.filter(fn x -> rem(x,2) == 1 end)
+|> Enum.to_list
+```
+
+Streams aren't just for lists, there are more Elixir modules support streams.
+
+```elixir
+IO.puts File.open!("/usr/share/dict/words")
+        |> IO.stream(:line)
+        |> Enum.mas_by(&String.length/1)
+
+# IO.stream converts an IO device (opened file) into
+# a stream that serves one line at a time.
+
+# Shortcut written with:
+IO.puts File.stream!("/usr/share/dict/words")
+|> Enum.max_by(&String.length/1)
+```
+
+Pro: there is no intermeiate storage.
+
+Con: it runs about two times slower than the Enum version.
+
+Consider that the data was read from external server or sensor, successive lines might arrive slowly, and might go on forever.
+
+With `Enum` implementation we'd have to wait for all lines arrived before starting processing, with `Stream` we can process them as they arrive.
+
+```elixir
+Enum.map(1..10_000_000, &(&1+1))
+|> Enum.take(5)
+#=> [2, 3, 4, 5, 6]
+# Enum will create 10_000_000 long list before
+# taking 5 out from them, this tooks about 8 secs
+
+Stream.map(1..10_000_000, &(&1+1))
+|> Enum.take(5)
+#=> [2, 3, 4, 5, 6]
+# Stream result coms back instantaneously, the
+# take call needs fine values, one the take call
+# has five from Stream, there's no more processing.
+```
+
