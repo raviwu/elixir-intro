@@ -1641,3 +1641,5 @@ for x <- ~w{ cat dog }, into: %{"ant" => "ANT"}, do: { x, String.upcase(x) }
 
 for x <- ~w{ cat dog }, into: IO.stream(:stdio, :line), do: "<<#{x}>>\n"
 ```
+
+Part of the process of learning to be effective in Elixir is working out for yourself when to use recursion and when to use enumerators. Enumerating is mostly the better choice if you can.
