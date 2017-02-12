@@ -1534,3 +1534,110 @@ Stream.resource(
 > Lazy streams let you deal with resources that are asynchronous to your code, and the fact that they are initialized every time they are used means they’re effectively side-effect-free. Every time we pipe our stream to an Enum function, we get a fresh set of values, computed at that time.
 
 > Not every situation where you are iterating requires a stream. But consider using a stream when you want to defer processing until you need the data, and when you need to deal with large numbers of things without necessarily generating them all at once.
+
+## Collectable Protocol
+
+> The `Enumerable` protocol lets you iterate over the elements in a type—given a collection, you can get the elements. `Collectable` is in some sense the opposite—it allows you to build a collection by inserting elements into it.
+
+> Not all collections are collectable. Ranges, for example, cannot have new entries added to them.
+
+```elixir
+Enum.into 1..5, []
+#=> [1, 2, 3, 4, 5]
+
+Enum.into 1..5, [11, 12]
+#=> [11, 12, 1, 2, 3, 4, 5]
+
+Enum.into IO.stream(:stdio, :line), IO.stream(:stdio, :line)
+```
+
+## Comprehensions
+
+> The idea of a comprehension is fairly simple: given one or more collections, extract all combinations of values from each, optionally filter the values, and then generate a new collection using the values that remain.
+
+General comprehensions syntax:
+
+```elixir
+result = for generator or filter...[, into: value], do: expression
+```
+
+```elixir
+for x <- [1, 2, 3, 4, 5], do: x * x
+#=> [1, 4, 9, 16, 25]
+for x <- [1, 2, 3, 4, 5], x < 4, do: x * x
+#=> [1, 4, 9]
+```
+
+A *generator* specifies how you want to extract values from collection:
+
+```elixir
+pattern <- enumerable_thing
+```
+
+Values that matched in the pattern are available in the rest of the comprehension, including the block.
+
+If we have two generators, the operations are nested:
+
+```elixir
+for x <- [1, 2], y <- [5, 6], do: {x, y}
+#=> [{1, 5}, {1, 6}, {2, 5}, {2, 6}]
+
+min_maxes = [{1, 4}, {2, 3}, {10, 15}]
+for {min, max} <- min_maxes, n <- min..max, do: n
+#=> [1, 2, 3, 4, 2, 3, 10, 11, 12, 13, 14, 15]
+```
+
+A filter is a predicate, acting as a gatekeeper for the rest of the comprehension, comprehension moves on if filter return false without generate output value.
+
+```elixir
+first_8 = [1, 2, 3, 4, 5, 6, 7, 8]
+for x <- first_8, y <- first_8, x >= y, rem(x*y, 10) == 0, do: {x, y}
+#=> [{5, 2}, {5, 4}, {6, 5}, {8, 5}]
+```
+
+We may use the generator pattern to deconstruct data.
+
+```elixir
+reports = [dallas: :hot, minneapolis: :cold, dc: :muggy, la: :smoggy]
+
+for { city, weather } <- reports, do { wheather, city }
+#=> [hot: :dallas, cold: :minneapolis, muggy: :dc, smoggy: :la]
+```
+
+Comprehensions on bits:
+
+```elixir
+for << ch <- "hello" >>, do: ch
+#=> 'hello'
+
+for << ch <- "hello" >>, do: <<ch>>
+#=> ["h", "e", "l", "l", "o"]
+
+for << << b1::size(2), b2::size(3), b3::size(3) >> <- "hello" >>, do: "0#{b1}#{b2}#{b3}"
+#=> ["0150", "0145", "0154", "0154", "0157"]
+```
+
+Scoping in comprehensions
+
+```elixir
+name = "Dave"
+for name <- ["cat", "bird"], do: String.upcase(name)
+#=> ["CAT", "BIRD"]
+name
+#=> "Dave"
+```
+
+Return type can be changed by `into:` parameter:
+
+```elixir
+for x <- ~w{ cat dog }, into: %{}, do: { x, String.upcase(x) }
+#=> %{"cat" => "CAT", "dog" => "DOG"}
+
+for x <- ~w{ cat dog }, into: Map.new, do: { x, String.upcase(x) }
+#=> %{"cat" => "CAT", "dog" => "DOG"}
+
+for x <- ~w{ cat dog }, into: %{"ant" => "ANT"}, do: { x, String.upcase(x) }
+#=> %{"ant" => "ANT", "cat" => "CAT", "dog" => "DOG"}
+
+for x <- ~w{ cat dog }, into: IO.stream(:stdio, :line), do: "<<#{x}>>\n"
+```
