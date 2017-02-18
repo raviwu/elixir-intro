@@ -1643,3 +1643,65 @@ for x <- ~w{ cat dog }, into: IO.stream(:stdio, :line), do: "<<#{x}>>\n"
 ```
 
 Part of the process of learning to be effective in Elixir is working out for yourself when to use recursion and when to use enumerators. Enumerating is mostly the better choice if you can.
+
+# Chapter 11 - String and Binaries
+
+Elixir has single quote and double quote string, although their internal representation is different, they share some common characteristics:
+
+- Strings hold characters in UTF-8 encoding
+- Strings may contain escape sequences like `\a` `\b` `\d` `\e` `\f` `\n` `\r` `\s` `\t` `\v` `\uhhh` `\xhhh`
+- Strings allow interpolation in expressions with syntax `#{...}`
+- Strings support *heredocs* (multilines) with `""` or `"""` notation
+
+The *heredocs& notation can trim the indent that closing tag is aligning:
+
+```elixir
+iex(1)> IO.puts "start"
+start
+:ok
+iex(2)> IO.write """
+...(2)>    my
+...(2)>      string
+...(2)>    """
+my
+  string
+```
+
+## Sigils
+
+Elixir has alternative syntax for literals like Ruby's `%w()` called *sigils*, starts with a tilde `~` and a letter, then delimeted content, with options. The delimiters can be `<...>`, `{...}`, `(...)`, `|...|`, `/.../`, `"..."`, and `'...'`.
+
+- `~C` character list with no escaping or interpolation
+- `~c` character list, escaped and interpolated like single-quote string
+- `~D` *Date* in format *yyyy-mm-dd*
+- `~N` native *DateTime* in format *yyyy-mm-dd hh:mm:ss[.ddd]*
+- `~R` regular expression with no escaping or interpolation
+- `~r` regular expression, escaped and interpolated
+- `~S` string with no escaping or interpolation
+- `~s` string, escaped and interpolated like double-quote string
+- `~T` *Time* in format *hh:mm:ss[.ddd]*
+- `~W` list of whitespace-delimited words, with no escaping or interpolation
+- `~w` list of whitespace-delimited words, escaped and interpolated
+
+The `~W` and `~w` take an optional type specifier, `a`, `c`, or `s`, which determines whether the returned element in list is *atom*, *character list*, or *string*.
+
+! Elixir does not check the nesting of delimiters, so the sigil `~s{a{b}` returns "a{b".
+
+## Single quote and Double quote string in Elixir
+
+The convention name in Elixir for strings is:
+- single-quote string: character list
+- double-quote string: string
+
+### character list
+
+`'cat'` is actually `[99, 97, 116]`, iex prints out `'cat'` instead of `[99, 97, 116]` cause the element in list is printable. If you add `'cat' ++ [0]` then iex no longer treat the new list as printable and will show `[99, 97, 116, 0]` instead.
+
+If a character list contains Erlang considers nonprintable, you'll see the list representation.
+
+```elixir
+iex> '∂x/∂y'
+[8706, 120, 47, 8706, 121]
+```
+
+The notation `?c` returns the integer code for the character `c`.
