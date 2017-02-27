@@ -1,6 +1,6 @@
 defmodule MyString do
   def calculate(string) do
-    {first_num, [ calculator | last_num ]} = Enum.split_while(string, fn(x) -> x != ?+ && x != ?- && x != ?* && x != ?/ end)
+    {first_num, [ calculator | last_num ]} = Enum.split_while(string, fn(x) -> not (x in [?+, ?-, ?*, ?/]) end)
   
     _calculate(_number_digits(first_num, 0), calculator, _number_digits(last_num, 0))
   end
