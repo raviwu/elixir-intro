@@ -1646,6 +1646,8 @@ Part of the process of learning to be effective in Elixir is working out for you
 
 # Chapter 11 - String and Binaries
 
+## Strings
+
 Elixir has single quote and double quote string, although their internal representation is different, they share some common characteristics:
 
 - Strings hold characters in UTF-8 encoding
@@ -1705,3 +1707,105 @@ iex> '∂x/∂y'
 ```
 
 The notation `?c` returns the integer code for the character `c`.
+
+## Binaries
+
+The binary type represents a sequence of bits, its literal looks like `<<term, term, ...>>`. The simplest tem is a number from 0 to 255.
+
+```elixir
+b = <<1, 2, 3>>
+
+byte_size b
+# => 3
+
+bit_size b
+# => 34
+```
+
+Can also specify modifiers to set term's size(in bits), usually applied when working with binary formats such as media files and network packets.
+
+```elixir
+b = <<1::size(2), 1::size(3)>> # 01 001
+# => <<9::size(5)>>
+
+byte_size b
+# => 1
+
+bit_size b
+# => 5
+```
+
+Terms can be integer, float, and other binary
+
+```elixir
+int = << 1 >>
+# => <<1>>
+
+float = << 2.5::float >>
+# => <<64, 4, 0, 0, 0, 0, 0, 0>>
+
+mix = << int::binary, float::binary >>
+# => <<1, 64, 4, 0, 0, 0, 0, 0, 0>>
+```
+
+## Double-Quoted Strings Are Binaries
+
+Double quoted strings are stored as a consecutive sequence of bytes in UTF-8 encoding. Two things worth of your notice:
+
+1. UTF=8 characters can take more than a single byte to represent, the size of the binary is not necessarily the length of the string.
+2. Need to learn binary syntax when dealing with double quoted strings.
+
+
+The `String` module defines functions that work with double-quoted strings. Common functions you might used often:
+
+- `at(string, offset)`: `String.at("abc", 0) #=> "a"` `String.at("abc", -1) #=> "c"`
+- `capitalize(string)`: `String.capitalize("ravi") #=> "Ravi"`
+- `codepoints(string)`: `String.codepoints("Ravi Wu") #=> ["R", "a", "v", "i", " ", "W", "u"]`
+- `downcase(string)`: `String.downcase("RAVI") #=> "ravi"`
+- `duplicate(string, n)`: `String.duplicate("Ho! ", 3) #=> "Ho! Ho! Ho! "`
+- `ends_with?(string, suffix|[suffixes])`: return true if `string` ends with any of the given suffixes `String.ends_with?("string", ["elix", "stri", "ring"]) #=> true`
+- `first(string)`: `String.first("abc") #=> "a"`
+- `graphemes(string)`: return the graphemes in the string and is defferent from the `codepoints` function - `String.graphemes("noe\u0308l") #=> ["n", "o", "ë", "l"]` / `String.codepoints("noe\u0308l") #=> ["n", "o", "e", "̈", "l"]`
+- `jaro_distance(string1, string2)`: return a float between 0 and 1 indicating the likely similarity of two strings
+- `last(string)`: `String.last("abc") #=> "c"`
+- `length(string)`: `String.length("abc") #=> 3`
+- `myers_difference(string1, string2)`: return the list of transformations needed to covert one string to another `String.myers_difference("ravi", "island") #=> [del: "rav", eq: "i", ins: "sland"]`
+- `next_codepoint(string)`: split `string` into its leading codepoint and the rest, or `nil` if `string` is empty. This may be used as the basis of an iterator.
+    ```elixir
+    defmodule MyString do
+      def each(str, func), do: _each(String.next_codepoint(str), func)
+
+      defp _each({codepoint, rest}, func) do
+        func.(codepoint)
+        _each(String.next_codepoint(rest), func)
+      end
+      defp _each(nil, _), do: []
+    end
+    ```
+- `next_grapheme(string)`: same as `next_codepoint` but return graphemes (and `:no_grapheme` on completion)
+- `pad_leading(string, new_length, padding \\ 32)`: return a new string, at least `new_length` long, containing `string` right-justed and padded with `padding`
+- `pad_trailing(string, new_length, padding \\ " ")`: return a new string, at least `new_length` long, containing `string` left-justed and padded with `padding`
+- `printable?(string)`: return true if `string` contains only printable characters
+- `replace(string, pattern, replacement, options \\ [global: true, insert_replaced: nil])`: replace `pattern` with `replacement` in `string` under control of `options`. If `:global` is true, all occurrences of the pattern are replaced. If `:insert_replaced` is a number, the pattern is inserted into the replacement at that offset, if `:insert_replaced` is a list, it is inserted multiple times.
+    ```elixir
+    String.replace("the cat on the mat", "at", "AT")
+    # => "the cAT on the mAT"
+    String.replace("the cat on the mat", "at", "AT", global: false)
+    # => "the cAT on the mat"
+    String.replace("the cat on the mat", "at", "AT", insert_replaced: 0)
+    # => "the catAT on the matAT"
+    String.replace("the cat on the mat", "at", "AT", insert_replaced: [0, 2])
+    # => "the catATat on the matATat"
+    ```
+- `reverse(string)`: `String.reverse("ravi") #=> "ivar"`
+- `slice(string, offset, length)`: `String.slice("the cat on the mat", 4, 3) #=> "cat"` / `String.slice("the cat on the mat", -3, 3) #=> "mat"`
+- `split(string, pattern \\ nil, options \\ [global: true])`: split `string` into substrings delimited by `pattern`. If `:global` is false, only one split is performed. `pattern` can be a string, a regex, or `nil`. If the `pattern` is nil, the string is split on whitespace.
+- `starts_with(string, prefix|[prefixes])`: return true if `string` starts with any of the given prefixes
+- `trim(string)`: trim leading and trailing whitespace from `string`
+- `trim(string, character)`: trims leading and trailing instances of `character` from `string` - `String.trim("!!!HELP!!!", "!") #=> "HELP"`
+- `trim_leading(string)`: trim leading whitespace from `string`
+- `trim_leading(string, character)`: trim leading `character` from `string`
+- `trim_trailing(string)`: trim trailing whitespace from `string`
+- `trim_trailing(string, character)`: trim trailing `character` from `string`
+- `upcaes(string)`: `String.upcase("ravi") #=> "RAVI"`
+- `valid?(string)`: return true if `string` containing only valid character.
