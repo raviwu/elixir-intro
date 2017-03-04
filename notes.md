@@ -1809,3 +1809,26 @@ The `String` module defines functions that work with double-quoted strings. Comm
 - `trim_trailing(string, character)`: trim trailing `character` from `string`
 - `upcaes(string)`: `String.upcase("ravi") #=> "RAVI"`
 - `valid?(string)`: return true if `string` containing only valid character.
+
+## Binaries and Pattern Matching
+
+The parallels with list processing are clear, but the differences are using `<< head::utf8, tail::binary>>` rather than `[ head | tail ]`, and using `<<>>` rather than `[]` for terminate match.
+
+> However, unless you’re doing a lot of work with binary file or protocol formats, the most common use of all this scary stuff is to process UTF-8 strings.
+
+```elixir
+defmodule Utf8 do
+  def each(str, func) when is_binary(str), do: _each(str, func)
+
+  defp _each(<< head::utf8, tail::binary >>, func) do
+    func.(head)
+    _each(tail, func)
+  end
+  defp _each(<<>>, _func), do: []
+end
+
+Utf8.each "dog", fn char -> IO.puts char end
+#=> 100
+#=> 111
+#=> 103
+```
