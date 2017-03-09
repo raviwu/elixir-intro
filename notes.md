@@ -1832,3 +1832,76 @@ Utf8.each "dog", fn char -> IO.puts char end
 #=> 111
 #=> 103
 ```
+
+# Chapter 12 - Control Flow
+
+Elixir code tries to be declarative instead of imperative, preferring small functions and a combination of guard clauses and pattern matching of parameters replaces most of the control flows.
+
+## `if` and `unless`
+
+```elixir
+if 1==1 do
+  "true"
+else
+  "false"
+end
+
+unless 1==1, do: "error", else: "OK"
+#=> "OK"
+unless 1==2, do: "OK", else: "error"
+#=> "error"
+```
+
+## `cond`
+
+```elixir
+def demo_cond(current) do
+  cond do
+    rem(current, 3) == 0 and rem(current, 5) == 0 -> "FizzBuzz"
+    rem(current, 3) == 0 -> "Fizz"
+    rem(current, 5) == 0 -> "Buzz"
+    true -> current # this is a fallback default for cond
+  end
+end
+```
+
+## `case`
+
+```elixir
+case File.open("case.ex") do
+  { :ok, file } -> IO.puts "First line: #{IO.read(file, :line)}"
+  { :error, reason } -> IO.puts "Failed to open file: #{reason}"
+end
+```
+
+## Raising Exception with `raise`
+
+Elixir exceptions are intended for things that should never happen in normal operation. DB downtime or server failing to respond could be considered exceptional. Failing to open a file given from user input should not be considered exceptional.
+
+```elixir
+raise "Giving up"
+#=> ** (RuntimeError) Giving up
+
+raise RuntimeError
+#=> ** (RuntimeError) runtime error
+
+raise RuntimeError, message: "override message"
+#=> ** (RuntimeError) override message
+```
+
+Elixir uses exception far less than other languages, the philosophy is that errors should propagate back up to an external supervising process.
+
+```elixir
+case File.open("config_file") do
+  {:ok, file} -> process(file)
+  {:error, message} -> raise "Failed to open config file: #{message}"
+end
+
+# If the exception message is not very important, can use
+{:ok, file} = File.open("config_file") # will raise MatchError
+process(file)
+```
+
+A better way to handle this is to use `!` version of method if available. The trailing exclamation point in the method name is Elixir convention that function will raise meaningful exception on error, something like this:
+
+`File.open!("config_file") |> process`
